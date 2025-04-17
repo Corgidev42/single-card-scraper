@@ -35,15 +35,27 @@ bleed = int(3 / 25.4 * dpi)
 output_folder = "batch_cards"
 os.makedirs(output_folder, exist_ok=True)
 
-print(f"📂 Output folder: {output_folder}\n")
+print(f"\U0001F4C2 Output folder: {output_folder}\n")
 
 # === Lire fichier TXT ===
 with open(txt_file, 'r') as f:
 	lines = [line.strip() for line in f if line.strip()]
 
+# Parse fichier en [(quantité, url)]
+entries = []
+for line in lines:
+	parts = line.split()
+	if parts[0].isdigit():
+		quantity = int(parts[0])
+		url = parts[1]
+	else:
+		quantity = 1
+		url = parts[0]
+	entries.append((quantity, url))
+
 # === Choix de la langue sur la première carte ===
-first_url = lines[0]
-print(f"🌐 Loading first card to detect languages: {first_url}")
+first_quantity, first_url = entries[0]
+print(f"\U0001F310 Loading first card to detect languages: {first_url}")
 driver.get(first_url)
 time.sleep(3)
 
@@ -60,7 +72,7 @@ if not langs:
 	driver.quit()
 	sys.exit(1)
 
-print("\n🌍 Available languages:")
+print("\n\U0001F30D Available languages:")
 for idx, (lang_code, _) in enumerate(langs):
 	print(f"{idx+1} - {lang_code}")
 
@@ -73,17 +85,16 @@ time.sleep(2)
 
 print(f"✅ Language selected: {chosen_lang_code}\n")
 
-# === Question : Appliquer une sélection automatique d'édition ? ===
+# === Choix d'édition automatique ===
 auto_select_edition = input("❓ Auto select same edition for all cards? (y/n): ").strip().lower()
-
 chosen_edition_idx = None
 
 # === Téléchargement brut des cartes ===
 card_idx = 1
 
-for url_idx, url in enumerate(lines):
+for quantity, url in entries:
 	try:
-		print(f"\n🌐 Loading card: {url}")
+		print(f"\n\U0001F310 Loading card: {url}")
 		driver.get(url)
 		time.sleep(3)
 
@@ -98,8 +109,8 @@ for url_idx, url in enumerate(lines):
 			print(f"⚠️ No editions found for {url}")
 			continue
 
-		# Si c'est la première carte et choix auto : demander
-		if url_idx == 0 or auto_select_edition == 'n':
+		# Si première carte ou pas auto : demander
+		if card_idx == 1 or auto_select_edition == 'n':
 			print("\n🎴 Available editions:")
 			for idx, link in enumerate(edition_links):
 				code = link.find('dd').text.strip()
@@ -131,81 +142,21 @@ for url_idx, url in enumerate(lines):
 		response.raise_for_status()
 
 		ext = img_url.split('.')[-1].split('?')[0]
-		local_name = f"card_{card_idx}.{ext}"
-		local_path = os.path.join(output_folder, local_name)
 
-		with open(local_path, 'wb') as img_file:
-			img_file.write(response.content)
-		print(f"✅ Downloaded: {local_name}")
+		# Télécharger autant de copies que demandé
+		for copy_idx in range(1, quantity + 1):
+			local_name = f"card_{card_idx}_copy{copy_idx}.{ext}"
+			local_path = os.path.join(output_folder, local_name)
+
+			with open(local_path, 'wb') as img_file:
+				img_file.write(response.content)
+			print(f"✅ Downloaded: {local_name}")
 
 		card_idx += 1
 
 	except Exception as e:
 		print(f"❌ Error processing {url}: {e}")
 
+# === Terminé ===
 driver.quit()
-
-# === Traitement impression après tous les téléchargements ===
-def prepare_images_for_print(folder, boost_mode="vivid"):
-	output_suffix = "_print_ready"
-	output_format = "TIFF"
-
-	print(f"\n🖨️ Preparing images for print (mode: {boost_mode})...")
-	print(f"📐 Each image will be resized to: {final_width}x{final_height} px (69x94 mm @ 300 DPI)")
-
-	for filename in os.listdir(folder):
-		if filename.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
-			original_path = os.path.join(folder, filename)
-			try:
-				img = Image.open(original_path).convert("RGB")
-
-				if boost_mode in ("vivid", "ultra-vivid"):
-					if boost_mode == "vivid":
-						saturation_factor = 1.2
-						contrast_factor = 1.1
-						brightness_factor = 1.05
-					elif boost_mode == "ultra-vivid":
-						saturation_factor = 1.4
-						contrast_factor = 1.2
-						brightness_factor = 1.1
-
-					enhancer = ImageEnhance.Color(img)
-					img = enhancer.enhance(saturation_factor)
-					enhancer = ImageEnhance.Contrast(img)
-					img = enhancer.enhance(contrast_factor)
-					enhancer = ImageEnhance.Brightness(img)
-					img = enhancer.enhance(brightness_factor)
-
-				resized = img.resize((content_width, content_height), Image.LANCZOS)
-				final_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
-				final_img.paste(resized, (bleed, bleed))
-
-				cmyk_img = final_img.convert("CMYK")
-
-				output_name = os.path.splitext(filename)[0] + output_suffix + ".tif"
-				output_path = os.path.join(folder, output_name)
-				cmyk_img.save(output_path, output_format, dpi=(dpi, dpi))
-				print(f"🟢 Ready for print: {output_name}")
-
-			except Exception as e:
-				print(f"❌ Error processing {filename}: {e}")
-
-prepare_images_for_print(output_folder, boost_mode="vivid")
-
-# === Génération PDF final ===
-print("\n📄 Creating final PDF...")
-tiff_files = sorted([
-	f for f in os.listdir(output_folder)
-	if f.lower().endswith("_print_ready.tif")
-])
-
-if not tiff_files:
-	print("⚠️ No TIFF files found for PDF generation.")
-	sys.exit(1)
-
-first_img = Image.open(os.path.join(output_folder, tiff_files[0]))
-other_imgs = [Image.open(os.path.join(output_folder, f)) for f in tiff_files[1:]]
-
-pdf_path = os.path.join(output_folder, "batch_cards_print.pdf")
-first_img.save(pdf_path, "PDF", save_all=True, append_images=other_imgs)
-print(f"✅ PDF generated: {pdf_path}")
+print("\n✅ All downloads completed!")
