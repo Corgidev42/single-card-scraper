@@ -12,7 +12,7 @@ PYTHON = $(VENV_DIR)/bin/python
 PIP = $(VENV_DIR)/bin/pip
 
 # 📁 Scripts
-SCRIPT = single_card_scraper.py
+SCRIPT = single_card_scraper_copy.py
 TXT_FILE = cards.txt
 
 # 📂 Output folders

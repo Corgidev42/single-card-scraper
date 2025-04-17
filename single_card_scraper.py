@@ -19,9 +19,14 @@ if not os.path.isfile(txt_file):
 	print(f"❌ File not found: {txt_file}")
 	sys.exit(1)
 
-# === Setup Selenium ===
+# === Setup Selenium (Headless propre) ===
 options = Options()
-options.headless = True
+options.add_argument("--headless=new")
+options.add_argument("--disable-gpu")
+options.add_argument("--window-size=1920,1080")
+options.add_argument("--no-sandbox")
+options.add_argument("--disable-dev-shm-usage")
+
 driver = webdriver.Chrome(options=options)
 
 dpi = 300
@@ -35,7 +40,7 @@ bleed = int(3 / 25.4 * dpi)
 output_folder = "batch_cards"
 os.makedirs(output_folder, exist_ok=True)
 
-print(f"\U0001F4C2 Output folder: {output_folder}\n")
+print(f"📂 Output folder: {output_folder}\n")
 
 # === Lire fichier TXT ===
 with open(txt_file, 'r') as f:
@@ -55,7 +60,7 @@ for line in lines:
 
 # === Choix de la langue sur la première carte ===
 first_quantity, first_url = entries[0]
-print(f"\U0001F310 Loading first card to detect languages: {first_url}")
+print(f"🌐 Loading first card to detect languages: {first_url}")
 driver.get(first_url)
 time.sleep(3)
 
@@ -72,7 +77,7 @@ if not langs:
 	driver.quit()
 	sys.exit(1)
 
-print("\n\U0001F30D Available languages:")
+print("\n🌍 Available languages:")
 for idx, (lang_code, _) in enumerate(langs):
 	print(f"{idx+1} - {lang_code}")
 
@@ -90,11 +95,9 @@ auto_select_edition = input("❓ Auto select same edition for all cards? (y/n): 
 chosen_edition_idx = None
 
 # === Téléchargement brut des cartes ===
-card_idx = 1
-
 for quantity, url in entries:
 	try:
-		print(f"\n\U0001F310 Loading card: {url}")
+		print(f"\n🌐 Loading card: {url}")
 		driver.get(url)
 		time.sleep(3)
 
@@ -109,8 +112,7 @@ for quantity, url in entries:
 			print(f"⚠️ No editions found for {url}")
 			continue
 
-		# Si première carte ou pas auto : demander
-		if card_idx == 1 or auto_select_edition == 'n':
+		if chosen_edition_idx is None or auto_select_edition == 'n':
 			print("\n🎴 Available editions:")
 			for idx, link in enumerate(edition_links):
 				code = link.find('dd').text.strip()
@@ -141,22 +143,45 @@ for quantity, url in entries:
 		response = requests.get(img_url)
 		response.raise_for_status()
 
-		ext = img_url.split('.')[-1].split('?')[0]
+		# Récupérer vrai nom de la carte
+		card_name_tag = soup.select_one("h1")
+		if not card_name_tag:
+			print(f"⚠️ No card name found for {selected_url}")
+			continue
 
-		# Télécharger autant de copies que demandé
-		for copy_idx in range(1, quantity + 1):
-			local_name = f"card_{card_idx}_copy{copy_idx}.{ext}"
-			local_path = os.path.join(output_folder, local_name)
+		card_name = card_name_tag.text.strip()
+		safe_card_name = card_name.replace(" ", "_").replace(",", "").replace("'", "").replace("/", "-")
 
-			with open(local_path, 'wb') as img_file:
-				img_file.write(response.content)
-			print(f"✅ Downloaded: {local_name}")
+		img = Image.open(requests.get(img_url, stream=True).raw).convert("RGB")
 
-		card_idx += 1
+		# === Traitement image : Boost + Fond perdu + CMJN ===
+		enhancer = ImageEnhance.Color(img)
+		img = enhancer.enhance(1.2)
+		enhancer = ImageEnhance.Contrast(img)
+		img = enhancer.enhance(1.1)
+		enhancer = ImageEnhance.Brightness(img)
+		img = enhancer.enhance(1.05)
+
+		resized = img.resize((content_width, content_height), Image.LANCZOS)
+		final_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
+		final_img.paste(resized, (bleed, bleed))
+
+		cmyk_img = final_img.convert("CMYK")
+
+		# === Sauvegarde TIFF(s) ===
+		for copy_num in range(1, quantity + 1):
+			if quantity > 1:
+				tiff_filename = f"{safe_card_name}_copy{copy_num}_print_ready.tif"
+			else:
+				tiff_filename = f"{safe_card_name}_print_ready.tif"
+
+			tiff_path = os.path.join(output_folder, tiff_filename)
+			cmyk_img.save(tiff_path, "TIFF", dpi=(dpi, dpi))
+			print(f"🖨️ Saved: {tiff_filename}")
 
 	except Exception as e:
 		print(f"❌ Error processing {url}: {e}")
 
-# === Terminé ===
+# === Fin ===
 driver.quit()
-print("\n✅ All downloads completed!")
+print("\n✅ All downloads and print-ready conversions completed!")
