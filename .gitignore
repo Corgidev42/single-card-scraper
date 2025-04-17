@@ -1,0 +1,23 @@
+# 🚫 Ignorer tout ce qui n'est pas utile au projet Git
+
+# Dossiers Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Environnement virtuel
+.venv_single/
+
+# Images générées
+single_cards/*.tif
+single_cards/*.webp
+single_cards/*.jpg
+single_cards/*.jpeg
+single_cards/*.png
+
+# Fichiers PDF générés
+single_cards/*.pdf
+
+# Fichiers logs ou temporaires éventuels
+*.log
+*.tmp
