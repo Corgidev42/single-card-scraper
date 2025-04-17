@@ -21,3 +21,5 @@ single_cards/*.pdf
 # Fichiers logs ou temporaires éventuels
 *.log
 *.tmp
+
+*.txt
