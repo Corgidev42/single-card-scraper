@@ -3,7 +3,7 @@
 ## 📌 Description
 
 This tool scrapes multiple Flesh and Blood cards from [cards.fabtcg.com](https://cards.fabtcg.com),
-downloads the highest quality card image, optimizes it for print (300 DPI, CMYK, bleed), 
+downloads the highest quality card image, optimizes it for print (300 DPI, CMYK, bleed),
 and compiles all selected cards into a single ready-to-print PDF.
 
 ---
@@ -30,7 +30,7 @@ and compiles all selected cards into a single ready-to-print PDF.
 
 ## ▶️ Usage
 
-Prepare a `.txt` file with one card URL per line:
+Prepare a `cards.txt` file with one card URL per line:
 
 ```
 https://cards.fabtcg.com/card/arakni-marionette/HNT001/

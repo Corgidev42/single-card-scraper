@@ -15,6 +15,10 @@ PIP = $(VENV_DIR)/bin/pip
 SCRIPT = single_card_scraper.py
 TXT_FILE = cards.txt
 
+# 📂 Output folders
+BATCH_FOLDER = batch_cards
+SINGLE_FOLDER = single_cards
+
 # 🧱 Main targets
 all: venv install
 
@@ -31,12 +35,28 @@ run: all
 	@echo "$(GREEN)▶️ Running scraper...$(RESET)"
 	@$(PYTHON) $(SCRIPT) $(TXT_FILE)
 
-# 🧹 Clean environment
+# 🧹 Clean venv only
 clean:
 	@echo "$(RED)🧹 Cleaning virtual environment...$(RESET)"
 	@rm -rf $(VENV_DIR)
 
-# 🔁 Full reset
-re: clean all
+# 🧹 Full clean: venv + generated folders
+fclean: clean
+	@echo "$(RED)🧹 Removing generated folders...$(RESET)"
+	@rm -rf $(BATCH_FOLDER) $(SINGLE_FOLDER)
 
-.PHONY: all venv install run clean re
+# 🔁 Full reset
+re: fclean all
+
+# 📜 Help
+help:
+	@echo ""
+	@echo "$(BOLD)Available commands:$(RESET)"
+	@echo "$(CYAN)make all$(RESET)       → Create venv + install dependencies"
+	@echo "$(CYAN)make run$(RESET)       → Run the scraper on cards.txt"
+	@echo "$(CYAN)make clean$(RESET)     → Remove virtual environment only"
+	@echo "$(CYAN)make fclean$(RESET)    → Full clean (venv + generated folders)"
+	@echo "$(CYAN)make re$(RESET)        → Full reset (clean + reinstall)"
+	@echo ""
+
+.PHONY: all venv install run clean fclean re help
