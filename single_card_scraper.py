@@ -182,6 +182,68 @@ for quantity, url in entries:
 	except Exception as e:
 		print(f"❌ Error processing {url}: {e}")
 
+
+# === Génération PDF final ===
+def export_images_to_pdf(folder):
+	print(f"\n📄 Création du PDF d'impression...")
+	tiff_files = sorted([
+		f for f in os.listdir(folder)
+		if f.lower().endswith("_print_ready.tif")
+	])
+
+	if not tiff_files:
+		print("⚠️ Aucune image print-ready trouvée.")
+		return
+
+	first_image = Image.open(os.path.join(folder, tiff_files[0]))
+	other_images = [Image.open(os.path.join(folder, f)) for f in tiff_files[1:]]
+
+	pdf_path = os.path.join(folder, "batch_cards_print.pdf")
+	first_image.save(pdf_path, "PDF", save_all=True, append_images=other_images)
+	print(f"✅ PDF final prêt : {pdf_path}")
+
+export_images_to_pdf(output_folder)
+
+# === Demande de suppression des fichiers générés ===
+def cleanup_prompt(folder):
+	print("\n🧼 Cleanup options:")
+	print("a → Supprimer TOUT (images .tif + scrap .webp/.jpg/.png)")
+	print("o → Supprimer uniquement les images .tif")
+	print("n → Ne rien supprimer")
+
+	answer = input("❓ Que souhaitez-vous supprimer ? [a/o/n] ").strip().lower()
+
+	deleted_tif = 0
+	deleted_scrap = 0
+
+	if answer == 'a' or answer == 'o':
+		for filename in os.listdir(folder):
+			if filename.endswith("_print_ready.tif"):
+				try:
+					os.remove(os.path.join(folder, filename))
+					deleted_tif += 1
+				except Exception as e:
+					print(f"❌ Erreur suppression TIFF {filename} : {e}")
+
+	if answer == 'a':
+		for filename in os.listdir(folder):
+			if filename.lower().endswith((".webp", ".jpg", ".jpeg", ".png")):
+				if not filename.endswith("_print_ready.tif"):
+					try:
+						os.remove(os.path.join(folder, filename))
+						deleted_scrap += 1
+					except Exception as e:
+						print(f"❌ Erreur suppression {filename} : {e}")
+
+	if answer == 'a':
+		print(f"🗑️ {deleted_tif} TIFF + {deleted_scrap} image(s) originale(s) supprimée(s).")
+	elif answer == 'o':
+		print(f"🗑️ {deleted_tif} TIFF supprimé(s).")
+	else:
+		print("✅ Aucun fichier supprimé.")
+
+cleanup_prompt(output_folder)
+
 # === Fin ===
 driver.quit()
 print("\n✅ All downloads and print-ready conversions completed!")
