@@ -9,14 +9,14 @@ __pycache__/
 .venv_single/
 
 # Images générées
-single_cards/*.tif
-single_cards/*.webp
-single_cards/*.jpg
-single_cards/*.jpeg
-single_cards/*.png
+batch_cards/*.tif
+batch_cards/*.webp
+batch_cards/*.jpg
+batch_cards/*.jpeg
+batch_cards/*.png
 
 # Fichiers PDF générés
-single_cards/*.pdf
+batch_cards/*.pdf
 
 # Fichiers logs ou temporaires éventuels
 *.log
