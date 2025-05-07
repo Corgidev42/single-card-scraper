@@ -15,6 +15,9 @@ PIP = $(VENV_DIR)/bin/pip
 SCRIPT = single_card_scraper.py
 TXT_FILE = cards.txt
 
+# 📌 Arguments
+BOOST =
+
 # 📂 Output folders
 BATCH_FOLDER = batch_cards
 SINGLE_FOLDER = single_cards
@@ -31,9 +34,14 @@ install: venv
 	@$(PIP) install --upgrade pip
 	@$(PIP) install selenium pillow beautifulsoup4 requests
 
+# ▶️ Run the script (with optional BOOST mode)
 run: all
 	@echo "$(GREEN)▶️ Running scraper...$(RESET)"
-	@$(PYTHON) $(SCRIPT) $(TXT_FILE)
+	@if [ -z "$(BOOST)" ]; then \
+		$(PYTHON) $(SCRIPT) $(TXT_FILE); \
+	else \
+		$(PYTHON) $(SCRIPT) $(TXT_FILE) $(BOOST); \
+	fi
 
 # 🧹 Clean venv only
 clean:
