@@ -149,7 +149,7 @@ for quantity, url in entries:
 				img = enhancer.enhance(1.05)
 
 			resized = img.resize((content_width, content_height), Image.LANCZOS)
-			final_img = Image.new("RGB", (final_width, final_height), (255, 255, 255))
+			final_img = Image.new("RGB", (final_width, final_height), (0, 0, 0))
 			final_img.paste(resized, (bleed, bleed))
 
 			cmyk_img = final_img.convert("CMYK")
