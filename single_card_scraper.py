@@ -80,9 +80,9 @@ chosen_lang, lang_element = langs[lang_choice]
 lang_element.click()
 time.sleep(2)
 
-# Ask edition choice mode
-auto_select = input("Auto select same edition for all cards? (y/n): ").strip().lower() == 'y'
-chosen_edition_idx = None
+# Choix du mode de rareté préféré
+auto_rarity = input("Utiliser une rareté favorite automatique ? (y/n): ").strip().lower() == 'y'
+fav_order = ["MV", "EA", "GF", "CF"]
 
 for quantity, url in entries:
 	success = False
@@ -96,18 +96,26 @@ for quantity, url in entries:
 
 			soup = BeautifulSoup(driver.page_source, 'html.parser')
 			editions = soup.select(f'div[data-tab-lang="{chosen_lang.lower()}"] a.card-details__variant')
-
 			if not editions:
 				raise ValueError("No editions found for this card.")
 
-			# Si l'index pré-sélectionné n'est plus valide → re-proposer le choix
-			if chosen_edition_idx is None or not auto_select or chosen_edition_idx >= len(editions):
+			selected_href = None
+			if auto_rarity:
+				for fav in fav_order:
+					for ed in editions:
+						if fav in ed.text:
+							selected_href = ed['href']
+							break
+					if selected_href:
+						break
+
+			if not selected_href:
 				print("Available editions:")
 				for i, e in enumerate(editions):
 					print(f"{i+1} - {e.find('dt').text.strip()} ({e.find('dd').text.strip()})")
-				chosen_edition_idx = int(input("Choose edition (number): ")) - 1
+				choice = int(input("Choose edition (number): ")) - 1
+				selected_href = editions[choice]['href']
 
-			selected_href = editions[chosen_edition_idx]['href']
 			selected_url = f"https://cards.fabtcg.com{selected_href}"
 			driver.get(selected_url)
 			time.sleep(2)
